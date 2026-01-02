@@ -4,3 +4,9 @@ htmlcov/
 .tox/
 *.pyc
 .coverage
+*.egg-info/
+dist/
+build/
+__pycache__/
+.pytest_cache/
+.venv/
