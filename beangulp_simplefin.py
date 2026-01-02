@@ -19,7 +19,7 @@ Then run:
 
 from __future__ import annotations
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 import json
 from datetime import date, datetime
@@ -213,6 +213,46 @@ class SimpleFINImporter(beangulp.Importer):
             except ValueError:
                 return None
         return None
+
+    def cmp(self, entry1: Directive, entry2: Directive) -> bool:
+        """Compare entries for deduplication.
+
+        If both entries have simplefin_id metadata, compare by ID.
+        This prevents false duplicates when transactions have the same
+        date/amount but different sources (e.g., PDF statement vs API).
+
+        Returns True if entries are considered duplicates.
+        """
+        # Only compare transactions
+        if not isinstance(entry1, Transaction) or not isinstance(entry2, Transaction):
+            return False
+
+        # Get simplefin_id from metadata
+        id1 = entry1.meta.get("simplefin_id")
+        id2 = entry2.meta.get("simplefin_id")
+
+        # If both have simplefin_id, compare by ID only
+        if id1 and id2:
+            return bool(id1 == id2)
+
+        # If only one has simplefin_id, they're not duplicates of each other
+        # (one is from SimpleFIN, one is from another source)
+        if id1 or id2:
+            return False
+
+        # Fall back to default comparison (date, amount, account)
+        if entry1.date != entry2.date:
+            return False
+
+        # Compare first posting (the main account posting)
+        if entry1.postings and entry2.postings:
+            p1, p2 = entry1.postings[0], entry2.postings[0]
+            if p1.account != p2.account:
+                return False
+            if p1.units != p2.units:
+                return False
+
+        return True
 
 
 # Backwards compatibility alias

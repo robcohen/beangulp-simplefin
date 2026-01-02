@@ -11,7 +11,7 @@ from beangulp_simplefin import SimpleFINImporter, __version__
 
 def test_version():
     """Test that version is defined."""
-    assert __version__ == "0.1.0"
+    assert __version__ == "0.2.0"
 
 
 # =============================================================================
@@ -576,3 +576,93 @@ def test_importer_alias():
 
     importer = Importer(account_mapping={"ACT-123": "Assets:Checking"})
     assert isinstance(importer, SimpleFINImporter)
+
+
+# =============================================================================
+# Deduplication (cmp) tests
+# =============================================================================
+
+
+def _make_transaction(simplefin_id, date_str, amount_str, account):
+    """Helper to create a transaction for cmp tests."""
+    from datetime import date as date_type
+    from decimal import Decimal
+
+    from beancount.core import amount as amt_module
+    from beancount.core import data, flags
+
+    meta = data.new_metadata("test.json", 0)
+    if simplefin_id:
+        meta["simplefin_id"] = simplefin_id
+
+    units = amt_module.Amount(Decimal(amount_str), "USD")
+    posting = data.Posting(account, units, None, None, None, None)
+
+    year, month, day = map(int, date_str.split("-"))
+    return data.Transaction(
+        meta,
+        date_type(year, month, day),
+        flags.FLAG_OKAY,
+        None,
+        "Test Transaction",
+        data.EMPTY_SET,
+        data.EMPTY_SET,
+        [posting],
+    )
+
+
+def test_cmp_same_simplefin_id():
+    """Test that transactions with same simplefin_id are duplicates."""
+    importer = SimpleFINImporter(account_mapping={"ACT-123": "Assets:Checking"})
+    txn1 = _make_transaction("TRN-001", "2024-01-15", "-50.00", "Assets:Checking")
+    txn2 = _make_transaction("TRN-001", "2024-01-15", "-50.00", "Assets:Checking")
+    assert importer.cmp(txn1, txn2) is True
+
+
+def test_cmp_different_simplefin_id():
+    """Test that transactions with different simplefin_id are not duplicates."""
+    importer = SimpleFINImporter(account_mapping={"ACT-123": "Assets:Checking"})
+    txn1 = _make_transaction("TRN-001", "2024-01-15", "-50.00", "Assets:Checking")
+    txn2 = _make_transaction("TRN-002", "2024-01-15", "-50.00", "Assets:Checking")
+    assert importer.cmp(txn1, txn2) is False
+
+
+def test_cmp_one_has_simplefin_id():
+    """Test that transactions where only one has simplefin_id are not duplicates."""
+    importer = SimpleFINImporter(account_mapping={"ACT-123": "Assets:Checking"})
+    txn1 = _make_transaction("TRN-001", "2024-01-15", "-50.00", "Assets:Checking")
+    txn2 = _make_transaction(None, "2024-01-15", "-50.00", "Assets:Checking")
+    assert importer.cmp(txn1, txn2) is False
+    assert importer.cmp(txn2, txn1) is False
+
+
+def test_cmp_no_simplefin_id_same_details():
+    """Test fallback comparison when neither has simplefin_id."""
+    importer = SimpleFINImporter(account_mapping={"ACT-123": "Assets:Checking"})
+    txn1 = _make_transaction(None, "2024-01-15", "-50.00", "Assets:Checking")
+    txn2 = _make_transaction(None, "2024-01-15", "-50.00", "Assets:Checking")
+    assert importer.cmp(txn1, txn2) is True
+
+
+def test_cmp_no_simplefin_id_different_date():
+    """Test fallback comparison with different dates."""
+    importer = SimpleFINImporter(account_mapping={"ACT-123": "Assets:Checking"})
+    txn1 = _make_transaction(None, "2024-01-15", "-50.00", "Assets:Checking")
+    txn2 = _make_transaction(None, "2024-01-16", "-50.00", "Assets:Checking")
+    assert importer.cmp(txn1, txn2) is False
+
+
+def test_cmp_no_simplefin_id_different_amount():
+    """Test fallback comparison with different amounts."""
+    importer = SimpleFINImporter(account_mapping={"ACT-123": "Assets:Checking"})
+    txn1 = _make_transaction(None, "2024-01-15", "-50.00", "Assets:Checking")
+    txn2 = _make_transaction(None, "2024-01-15", "-75.00", "Assets:Checking")
+    assert importer.cmp(txn1, txn2) is False
+
+
+def test_cmp_no_simplefin_id_different_account():
+    """Test fallback comparison with different accounts."""
+    importer = SimpleFINImporter(account_mapping={"ACT-123": "Assets:Checking"})
+    txn1 = _make_transaction(None, "2024-01-15", "-50.00", "Assets:Checking")
+    txn2 = _make_transaction(None, "2024-01-15", "-50.00", "Assets:Savings")
+    assert importer.cmp(txn1, txn2) is False
