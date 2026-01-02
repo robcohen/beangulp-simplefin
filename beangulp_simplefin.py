@@ -107,7 +107,9 @@ class SimpleFINImporter(beangulp.Importer):
 
         # Extract transactions
         for txn in account_data.get("transactions", []):
-            entry = self._extract_transaction(txn, beancount_account, currency, filepath)
+            entry = self._extract_transaction(
+                txn, beancount_account, currency, filepath
+            )
             if entry:
                 entries.append(entry)
 
@@ -166,11 +168,7 @@ class SimpleFINImporter(beangulp.Importer):
         )
 
         # Counter posting
-        if amt < 0:
-            counter_account = self.expense_account
-        else:
-            counter_account = self.income_account
-
+        counter_account = self.expense_account if amt < 0 else self.income_account
         posting2 = data.Posting(counter_account, None, None, None, None, None)
 
         return data.Transaction(
