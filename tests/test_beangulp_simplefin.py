@@ -2,10 +2,7 @@ import json
 import os
 import tempfile
 
-import pytest
-
 from beangulp_simplefin import SimpleFINImporter, __version__
-
 
 # =============================================================================
 # Version tests
