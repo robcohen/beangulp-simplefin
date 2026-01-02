@@ -19,7 +19,6 @@ classifiers = [
     "Intended Audience :: Financial and Insurance Industry",
     "Topic :: Office/Business :: Financial",
     "Topic :: Office/Business :: Financial :: Accounting",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Natural Language :: English",
     "Programming Language :: Python",
