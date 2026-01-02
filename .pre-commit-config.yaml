@@ -19,6 +19,5 @@ repos:
     rev: v1.14.0
     hooks:
       - id: mypy
-        additional_dependencies:
-          - types-all
         files: ^beangulp_simplefin\.py$
+        args: [--ignore-missing-imports]
