@@ -54,7 +54,7 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv
-          uv pip install pre-commit
+          uv pip install pre-commit ruff mypy
 
       - name: Run pre-commit
         run: |
