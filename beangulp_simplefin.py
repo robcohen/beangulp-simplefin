@@ -83,7 +83,9 @@ class SimpleFINImporter(beangulp.Importer):
             with open(filepath) as f:
                 file_data: dict[str, Any] = json.load(f)
             account_id = file_data.get("id")
-            return self.account_mapping.get(account_id, "Assets:Unknown")
+            if account_id is None:
+                return "Assets:Unknown"
+            return self.account_mapping.get(str(account_id), "Assets:Unknown")
         except (json.JSONDecodeError, OSError):
             return "Assets:Unknown"
 

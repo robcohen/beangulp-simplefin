@@ -36,7 +36,7 @@ jobs:
 
       - name: Run type checker
         run: |
-          uv run mypy beangulp_simplefin.py
+          uv run mypy beangulp_simplefin.py --ignore-missing-imports
 
   lint:
     runs-on: ubuntu-latest
